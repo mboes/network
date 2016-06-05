@@ -261,7 +261,6 @@ mkSocket :: CInt
          -> IO Socket
 mkSocket fd fam sType pNum stat = do
    mStat <- newMVar stat
-   withSocketsDo $ return ()
    return (MkSocket fd fam sType pNum mStat)
 
 
@@ -331,7 +330,6 @@ socket family stype protocol = do
                 c_socket (packFamily family) c_stype protocol
     setNonBlockIfNeeded fd
     socket_status <- newMVar NotConnected
-    withSocketsDo $ return ()
     let sock = MkSocket fd family stype protocol socket_status
 #if HAVE_DECL_IPV6_V6ONLY
     -- The default value of the IPv6Only option is platform specific,
@@ -370,7 +368,6 @@ socketPair family stype protocol = do
     mkNonBlockingSocket fd = do
        setNonBlockIfNeeded fd
        stat <- newMVar Connected
-       withSocketsDo $ return ()
        return (MkSocket fd family stype protocol stat)
 
 foreign import ccall unsafe "socketpair"
@@ -411,7 +408,7 @@ bind (MkSocket s _family _stype _protocol socketStatus) addr = do
 connect :: Socket    -- Unconnected Socket
         -> SockAddr  -- Socket address stuff
         -> IO ()
-connect sock@(MkSocket s _family _stype _protocol socketStatus) addr = withSocketsDo $ do
+connect sock@(MkSocket s _family _stype _protocol socketStatus) addr = do
  modifyMVar_ socketStatus $ \currentStatus -> do
  if currentStatus /= NotConnected && currentStatus /= Bound
   then
@@ -1144,7 +1141,7 @@ isAcceptable (MkSocket _ _ _ _ status) = do
 -- Internet address manipulation routines:
 
 inet_addr :: String -> IO HostAddress
-inet_addr ipstr = withSocketsDo $ do
+inet_addr ipstr = do
    withCString ipstr $ \str -> do
    had <- c_inet_addr str
    if had == -1
@@ -1152,7 +1149,7 @@ inet_addr ipstr = withSocketsDo $ do
     else return had  -- network byte order
 
 inet_ntoa :: HostAddress -> IO String
-inet_ntoa haddr = withSocketsDo $ do
+inet_ntoa haddr = do
   pstr <- c_inet_ntoa haddr
   peekCString pstr
 
@@ -1425,7 +1422,7 @@ getAddrInfo :: Maybe AddrInfo -- ^ preferred socket type or protocol
             -> Maybe ServiceName -- ^ service name to look up
             -> IO [AddrInfo] -- ^ resolved addresses, with "best" first
 
-getAddrInfo hints node service = withSocketsDo $
+getAddrInfo hints node service =
   maybeWith withCString node $ \c_node ->
     maybeWith withCString service $ \c_service ->
       maybeWith with filteredHints $ \c_hints ->
@@ -1502,7 +1499,7 @@ getNameInfo :: [NameInfoFlag] -- ^ flags to control lookup behaviour
             -> SockAddr -- ^ the address to look up
             -> IO (Maybe HostName, Maybe ServiceName)
 
-getNameInfo flags doHost doService addr = withSocketsDo $
+getNameInfo flags doHost doService addr =
   withCStringIf doHost (#const NI_MAXHOST) $ \c_hostlen c_host ->
     withCStringIf doService (#const NI_MAXSERV) $ \c_servlen c_serv -> do
       withSockAddr addr $ \ptr_addr sz -> do

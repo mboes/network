@@ -312,7 +312,7 @@ withIOVec cs f =
 -- > import Network.Socket.ByteString (recv, sendAll)
 -- >
 -- > main :: IO ()
--- > main = withSocketsDo $
+-- > main = withSocketsDo $    -- Only needed for backwards compatibility.
 -- >     do addrinfos <- getAddrInfo
 -- >                     (Just (defaultHints {addrFlags = [AI_PASSIVE]}))
 -- >                     Nothing (Just "3000")
@@ -339,7 +339,7 @@ withIOVec cs f =
 -- > import qualified Data.ByteString.Char8 as C
 -- >
 -- > main :: IO ()
--- > main = withSocketsDo $
+-- > main = withSocketsDo $    -- Only needed for backwards compatibility.
 -- >     do addrinfos <- getAddrInfo Nothing (Just "") (Just "3000")
 -- >        let serveraddr = head addrinfos
 -- >        sock <- socket (addrFamily serveraddr) Stream defaultProtocol

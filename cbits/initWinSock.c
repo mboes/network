@@ -1,43 +1,39 @@
 #include "HsNet.h"
 #include "HsFFI.h"
+#include <stdio.h>
 
 #if defined(HAVE_WINSOCK2_H) && !defined(__CYGWIN__)
 
-static int winsock_inited = 0;
-
+__attribute__((destructor))
 static void
 shutdownHandler(void)
 {
   WSACleanup();
 }
 
-/* Initialising WinSock... */
-int
-initWinSock ()
+__attribute__((constructor))
+static void
+initWinSock()
 {
   WORD wVersionRequested;
-  WSADATA wsaData;  
+  WSADATA wsaData;
   int err;
 
-  if (!winsock_inited) {
-    wVersionRequested = MAKEWORD( 2, 2 );
+  wVersionRequested = MAKEWORD( 2, 2 );
 
-    err = WSAStartup ( wVersionRequested, &wsaData );
-    
-    if ( err != 0 ) {
-       return err;
-    }
+  err = WSAStartup ( wVersionRequested, &wsaData );
 
-    if ( LOBYTE( wsaData.wVersion ) != 2 ||
-       HIBYTE( wsaData.wVersion ) != 2 ) {
-      WSACleanup();
-      return (-1);
-    }
-
-    atexit(shutdownHandler);
-    winsock_inited = 1;
+  if ( err != 0 ) {
+     fprintf(stderr, "Cannot initialize WinSock.\n");
+     fprintf(stderr, "\tWSAStartup() failed with error: %d\n", err);
+     exit ( 1 );
   }
-  return 0;
+
+  if ( LOBYTE( wsaData.wVersion ) != 2 || HIBYTE( wsaData.wVersion ) != 2 ) {
+    fprintf(stderr, "Could not find a usable version of Winsock.dll\n");
+    WSACleanup();
+    exit ( 1 );
+  }
 }
 
 #endif

@@ -185,7 +185,6 @@ throwSocketErrorIfMinus1Retry name act = do
     rc   <- c_getLastError
     case rc of
       #{const WSANOTINITIALISED} -> do
-        withSocketsDo (return ())
         r <- act
         if (r == -1)
            then throwSocketError name
@@ -234,38 +233,8 @@ throwSocketErrorWaitWrite sock name io =
         (threadWaitWrite $ fromIntegral $ sockFd sock)
         io
 
--- ---------------------------------------------------------------------------
--- WinSock support
-
-{-| With older versions of the @network@ library on Windows operating systems,
-the networking subsystem must be initialised using 'withSocketsDo' before
-any networking operations can be used. eg.
-
-> main = withSocketsDo $ do {...}
-
-It is fine to nest calls to 'withSocketsDo', and to perform networking operations
-after 'withSocketsDo' has returned.
-
-In newer versions of the @network@ library it is only necessary to call
-'withSocketsDo' if you are calling the 'MkSocket' constructor directly.
-However, for compatibility with older versions on Windows, it is good practice
-to always call 'withSocketsDo' (it's very cheap).
--}
-{-# INLINE withSocketsDo #-}
+-- | This function is a noop. It was required for all versions of the package
+-- before 2.6.1, but now no longer does anything. You should still call this
+-- function if you want backwards compatibility with older versions.
 withSocketsDo :: IO a -> IO a
-#if !defined(WITH_WINSOCK)
-withSocketsDo x = x
-#else
-withSocketsDo act = evaluate withSocketsInit >> act
-
-
-{-# NOINLINE withSocketsInit #-}
-withSocketsInit :: ()
--- Use a CAF to make forcing it do initialisation once, but subsequent forces will be cheap
-withSocketsInit = unsafePerformIO $ do
-    x <- initWinSock
-    when (x /= 0) $ ioError $ userError "Failed to initialise WinSock"
-
-foreign import ccall unsafe "initWinSock" initWinSock :: IO Int
-
-#endif
+withSocketsDo = id
